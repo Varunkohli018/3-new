@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Online HTML / CSS / JS Editor</title>
+<style>
+  :root{
+    --bg:#0f172a; --panel:#111827; --muted:#334155; --text:#e5e7eb; --accent:#3b82f6;
+    --tab:#1f2937; --tab-active:#374151;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:Inter,system-ui,Arial,Helvetica,sans-serif;
+    display:flex; flex-direction:column;
+  }
+  /* Top bar */
+  header{
+    height:56px; min-height:56px; max-height:56px;
+    display:flex; align-items:center; gap:12px;
+    padding:0 14px; border-bottom:1px solid var(--muted);
+    background:linear-gradient(180deg,#0b1023 0,#0f172a 100%);
+  }
+  header h1{margin:0; font-size:14px; font-weight:600; opacity:.9}
+  .btn{
+    margin-left:auto; padding:8px 14px; border:0; border-radius:10px;
+    background:var(--accent); color:#fff; font-weight:600; cursor:pointer;
+  }
+
+  /* Container flex */
+  .container{flex:1; display:flex; min-height:0}
+  /* Only editor pane now */
+  .left{
+    width:100%; min-width:330px;
+    display:flex; flex-direction:column; background:var(--panel);
+  }
+  .tabs{display:flex; gap:6px; padding:8px; border-bottom:1px solid var(--muted)}
+  .tab{
+    padding:8px 12px; border-radius:8px; background:var(--tab);
+    color:#cbd5e1; font-size:13px; cursor:pointer; user-select:none;
+    border:1px solid #1f2937;
+  }
+  .tab.active{background:var(--tab-active); color:#fff; border-color:#334155}
+  .editors{position:relative; flex:1;}
+
+  textarea{
+    position:absolute; inset:0; width:100%; height:100%;
+    background:#0b1023; color:#e5e7eb; border:0; outline:0;
+    padding:14px; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    font-size:14px; line-height:1.5; display:none; resize:none;
+  }
+  textarea.active{display:block}
+
+  /* Copy button */
+  .copy-btn {
+    position:absolute;
+    bottom:12px;
+    right:12px;
+    background:var(--accent);
+    color:#fff;
+    border:none;
+    border-radius:8px;
+    padding:6px 12px;
+    font-size:12px;
+    cursor:pointer;
+    z-index:10;
+  }
+  .copy-btn:hover{opacity:.9}
+
+  /* Menu container & dropdown */
+  .menu-container {
+    position: relative;
+    margin-left: 10px;
+    margin-right: auto;
+  }
+  .dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background: var(--panel);
+    border: 1px solid var(--muted);
+    border-radius: 6px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    display: none;
+    min-width: 120px;
+    z-index: 1000;
+  }
+  .dropdown-item {
+    padding: 8px 14px;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--text);
+    user-select: none;
+    border-bottom: 1px solid var(--muted);
+  }
+  .dropdown-item:last-child {border-bottom:none;}
+  .dropdown-item:hover {background: var(--accent); color: white;}
+
+  /* Modal styles */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(15, 23, 42, 0.85);
+    display: none; justify-content: center; align-items: center;
+    z-index: 2000;
+  }
+  .modal {
+    background: var(--panel); padding: 20px 30px;
+    border-radius: 10px; max-width: 700px; max-height: 80vh;
+    overflow-y: auto; color: var(--text);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.6); position: relative;
+  }
+  .modal h2 {margin-top: 0; font-weight: 700; font-size: 1.4em;}
+  .modal h3 {margin-top: 20px; font-weight: 600;}
+  .modal p {margin: 10px 0;}
+  .modal pre {
+    background: #1f2937; padding: 12px; border-radius: 6px;
+    overflow-x: auto; font-size: 13px; line-height: 1.4; user-select: text;
+  }
+  .close-btn {
+    position: absolute; top: 12px; right: 16px;
+    background: transparent; border: none; color: var(--text);
+    font-size: 18px; cursor: pointer; font-weight: 600;
+  }
+  .close-btn:hover {color: var(--accent);}
+</style>
+</head>
+<body>
+  <header>
+    <h1> HTML / CSS / JS Editor</h1>
+    <div class="menu-container">
+      <button class="btn" id="menuBtn">Menu ▼</button>
+      <div class="dropdown" id="dropdownMenu">
+        <div class="dropdown-item" data-action="read">Read</div>
+        <div class="dropdown-item" data-action="help">Help</div>
+        <div class="dropdown-item" data-action="about">About</div>
+      </div>
+    </div>
+    <button class="btn" id="runBtn">▶ Run</button>
+  </header>
+
+  <div class="container">
+    <section class="left">
+      <div class="tabs">
+        <div class="tab active" data-target="html">index.html</div>
+        <div class="tab" data-target="css">style.css</div>
+        <div class="tab" data-target="js">script.js</div>
+      </div>
+      <div class="editors">
+        <textarea id="html" class="active" spellcheck="false"><h1>Hello from HTML</h1>
+<p>Edit your HTML here.</p></textarea>
+        <button class="copy-btn" data-target="html">
+  <svg xmlns="http://www.w3.org/2000/svg" height="16" width="16" viewBox="0 0 24 24" fill="currentColor" style="vertical-align: middle; margin-right: 6px;">
+    <path d="M16 1H4a2 2 0 0 0-2 2v14h2V3h12V1zM8 5a2 2 0 0 0-2 2v16h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H8zm11 16H8V7h11v14z"/>
+  </svg>
+  Copy
+</button>
+
+        <textarea id="css" spellcheck="false">/* Edit your CSS here */
+body{font-family:system-ui,Arial,sans-serif}
+h1{color:#3b82f6; text-align:center}</textarea>
+<button class="copy-btn" data-target="html">
+  <svg xmlns="http://www.w3.org/2000/svg" height="16" width="16" viewBox="0 0 24 24" fill="currentColor" style="vertical-align: middle; margin-right: 6px;">
+    <path d="M16 1H4a2 2 0 0 0-2 2v14h2V3h12V1zM8 5a2 2 0 0 0-2 2v16h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H8zm11 16H8V7h11v14z"/>
+  </svg>
+  Copy
+</button>
+
+        <textarea id="js" spellcheck="false">// Write your JavaScript here
+document.addEventListener("DOMContentLoaded", ()=>{
+  console.log("JS is running!");
+  alert("Hello from JS!");
+});</textarea>
+<button class="copy-btn" data-target="html">
+  <svg xmlns="http://www.w3.org/2000/svg" height="16" width="16" viewBox="0 0 24 24" fill="currentColor" style="vertical-align: middle; margin-right: 6px;">
+    <path d="M16 1H4a2 2 0 0 0-2 2v14h2V3h12V1zM8 5a2 2 0 0 0-2 2v16h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H8zm11 16H8V7h11v14z"/>
+  </svg>
+  Copy
+</button>
+
+      </div>
+    </section>
+  </div>
+
+  <!-- Read Modal -->
+  <div class="modal-overlay" id="readModal">
+    <div class="modal">
+      <button class="close-btn" id="closeReadModalBtn">Close ✖</button>
+      <h2>Basic HTML Knowledge</h2>
+      <p>HTML (HyperText Markup Language) is the standard language for creating webpages. It uses tags to structure content.</p>
+      <p>Example:</p>
+      <pre>
+&lt;h1&gt;Hello World&lt;/h1&gt;
+&lt;p&gt;This is a paragraph.&lt;/p&gt;
+      </pre>
+    </div>
+  </div>
+
+  <!-- Help Modal -->
+  <div class="modal-overlay" id="helpModal">
+    <div class="modal">
+      <button class="close-btn" id="closeHelpModalBtn">Close ✖</button>
+      <h2>Detailed HTML, CSS, and JavaScript Help</h2>
+      <h3>Common HTML Tags</h3>
+      <p>Some frequently used HTML tags:</p>
+      <pre>... (your existing help content) ...</pre>
+    </div>
+  </div>
+
+<script>
+  // Tabs logic
+  const tabs = document.querySelectorAll('.tab');
+  const htmlArea = document.getElementById('html');
+  const cssArea  = document.getElementById('css');
+  const jsArea   = document.getElementById('js');
+  tabs.forEach(t=>{
+    t.addEventListener('click',()=>{
+      tabs.forEach(x=>x.classList.remove('active'));
+      t.classList.add('active');
+      const id=t.dataset.target;
+      htmlArea.classList.toggle('active', id==='html');
+      cssArea.classList.toggle('active',  id==='css');
+      jsArea.classList.toggle('active',   id==='js');
+      (id==='html'?htmlArea:id==='css'?cssArea:jsArea).focus();
+    });
+  });
+
+  // Run with back button
+  function run(){
+    const doc = `<!doctype html><html><head><meta charset="utf-8">
+<style>${cssArea.value||''}</style></head>
+<body>
+<button onclick="window.close()" style="position:fixed;top:10px;left:10px;padding:6px 12px;border:none;border-radius:6px;background:#3b82f6;color:#fff;font-weight:bold;cursor:pointer;">⬅ Back</button>
+${htmlArea.value||''}
+<script>${jsArea.value||''}<\/script>
+</body></html>`;
+    const newWin = window.open();
+    newWin.document.open();
+    newWin.document.write(doc);
+    newWin.document.close();
+  }
+  document.getElementById('runBtn').addEventListener('click', run);
+
+  // Copy button logic
+  document.querySelectorAll('.copy-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const target = document.getElementById(btn.dataset.target);
+      navigator.clipboard.writeText(target.value).then(()=>{
+        btn.textContent = "Copied!";
+        setTimeout(()=>btn.textContent="Copy", 1500);
+      });
+    });
+  });
+
+  // Dropdown menu
+  const menuBtn = document.getElementById('menuBtn');
+  const dropdownMenu = document.getElementById('dropdownMenu');
+  menuBtn.addEventListener('click', () => {
+    dropdownMenu.style.display = dropdownMenu.style.display==='block'?'none':'block';
+  });
+  window.addEventListener('click', (e) => {
+    if (!menuBtn.contains(e.target) && !dropdownMenu.contains(e.target)) {
+      dropdownMenu.style.display = 'none';
+    }
+  });
+  dropdownMenu.addEventListener('click', (e) => {
+    if (e.target.classList.contains('dropdown-item')) {
+      const action = e.target.dataset.action;
+      dropdownMenu.style.display = 'none';
+      if(action === 'read'){
+        document.getElementById('readModal').style.display = 'flex';
+      } else if(action === 'help'){
+        document.getElementById('helpModal').style.display = 'flex';
+      } else if(action === 'about'){
+        alert('This is an online HTML/CSS/JS editor.\nCreated by You!');
+      }
+    }
+  });
+  // Close modals
+  document.getElementById('closeReadModalBtn').addEventListener('click', () => {
+    document.getElementById('readModal').style.display = 'none';
+  });
+  document.getElementById('closeHelpModalBtn').addEventListener('click', () => {
+    document.getElementById('helpModal').style.display = 'none';
+  });
+  document.getElementById('readModal').addEventListener('click', (e) => {
+    if(e.target === e.currentTarget){ e.currentTarget.style.display = 'none'; }
+  });
+  document.getElementById('helpModal').addEventListener('click', (e) => {
+    if(e.target === e.currentTarget){ e.currentTarget.style.display = 'none'; }
+  });
+</script>
+</body>
+</html>
